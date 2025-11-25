@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chart Genie Prototype - Gutenberg Style</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #fff;
+            color: #1e1e1e;
+            line-height: 1.6;
+        }
+
+        /* Gutenberg Top Bar */
+        .editor-header {
+            background: #fff;
+            border-bottom: 1px solid #ddd;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .editor-header-logo {
+            width: 36px;
+            height: 36px;
+            background: #d32f2f;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+            border-radius: 2px;
+        }
+
+        .editor-header-button {
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: #2271b1;
+            color: white;
+            border-radius: 2px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .editor-header-button.secondary {
+            background: #f0f0f0;
+            color: #1e1e1e;
+        }
+
+        .editor-header-title {
+            flex: 1;
+            text-align: center;
+            color: #757575;
+            font-size: 14px;
+        }
+
+        .editor-header-save {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 2px;
+            cursor: pointer;
+            font-size: 13px;
+            color: #757575;
+        }
+
+        /* Main Editor Container */
+        .editor-container {
+            max-width: 840px;
+            margin: 0 auto;
+            padding: 60px 20px;
+        }
+
+        /* Title Input */
+        .post-title {
+            font-size: 40px;
+            font-weight: 400;
+            color: #757575;
+            border: none;
+            outline: none;
+            width: 100%;
+            padding: 20px 0;
+            font-family: inherit;
+            line-height: 1.4;
+        }
+
+        .post-title:focus {
+            color: #1e1e1e;
+        }
+
+        /* Content Blocks */
+        .block {
+            margin: 28px 0;
+            position: relative;
+        }
+
+        .block:hover .block-toolbar {
+            opacity: 1;
+        }
+
+        .block-toolbar {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            display: flex;
+            gap: 4px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .block-toolbar-button {
+            width: 32px;
+            height: 32px;
+            border: 1px solid #1e1e1e;
+            background: white;
+            border-radius: 2px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        /* Paragraph Block */
+        .paragraph-block {
+            font-size: 16px;
+            line-height: 1.8;
+            color: #1e1e1e;
+        }
+
+        /* Chart Genie Block */
+        .chart-genie-block {
+            border: 1px solid #ddd;
+            border-radius: 2px;
+            padding: 32px;
+            background: #fff;
+            margin: 28px 0;
+        }
+
+        .chart-genie-block.is-selected {
+            border-color: #2271b1;
+            box-shadow: 0 0 0 1px #2271b1;
+        }
+
+        .block-icon-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .block-icon {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .block-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1e1e1e;
+        }
+
+        .block-description {
+            color: #757575;
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+
+        /* Loading State */
+        .loading-state {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading-state.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #2271b1;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: #757575;
+            font-size: 14px;
+        }
+
+        /* Initial State */
+        .initial-state {
+            display: block;
+        }
+
+        .initial-state.hidden {
+            display: none;
+        }
+
+        .analyze-button {
+            padding: 12px 24px;
+            background: #2271b1;
+            color: white;
+            border: none;
+            border-radius: 2px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .analyze-button:hover {
+            background: #135e96;
+        }
+
+        /* Suggestions View */
+        .suggestions-view {
+            display: none;
+        }
+
+        .suggestions-view.active {
+            display: block;
+        }
+
+        .suggestions-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            background: #f0f6fc;
+            border-radius: 2px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #1e1e1e;
+        }
+
+        .suggestions-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .suggestions-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .suggestion-card {
+            border: 1px solid #ddd;
+            border-radius: 2px;
+            padding: 20px;
+            transition: all 0.2s;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .suggestion-card:hover {
+            border-color: #2271b1;
+            box-shadow: 0 0 0 1px #2271b1;
+        }
+
+        .suggestion-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #1e1e1e;
+        }
+
+        .suggestion-meta {
+            font-size: 13px;
+            color: #757575;
+            margin-bottom: 12px;
+        }
+
+        .suggestion-rationale {
+            background: #f6f7f7;
+            padding: 10px 12px;
+            border-radius: 2px;
+            font-size: 13px;
+            color: #1e1e1e;
+            margin-bottom: 12px;
+            border-left: 3px solid #2271b1;
+        }
+
+        .suggestion-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: auto;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 2px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: white;
+        }
+
+        .btn-primary {
+            background: #2271b1;
+            color: white;
+            border-color: #2271b1;
+        }
+
+        .btn-primary:hover {
+            background: #135e96;
+            border-color: #135e96;
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #2271b1;
+            border-color: #2271b1;
+        }
+
+        .btn-secondary:hover {
+            background: #f0f6fc;
+        }
+
+        .refresh-section {
+            border-top: 1px solid #ddd;
+            margin-top: 20px;
+            padding-top: 20px;
+            text-align: center;
+        }
+
+        .refresh-section p {
+            font-size: 13px;
+            color: #757575;
+            margin-bottom: 12px;
+        }
+
+        /* Refinement View */
+        .refinement-view {
+            display: none;
+        }
+
+        .refinement-view.active {
+            display: block;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            color: #2271b1;
+            text-decoration: none;
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+
+        .back-link:hover {
+            color: #135e96;
+        }
+
+        /* Chart Configuration View */
+        .chart-config-container {
+            background: #f6f7f7;
+            border: 1px solid #ddd;
+            border-radius: 2px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .config-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .config-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1e1e1e;
+        }
+
+        .btn-edit {
+            padding: 6px 14px;
+            background: white;
+            color: #2271b1;
+            border: 1px solid #2271b1;
+            border-radius: 2px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-edit:hover {
+            background: #f0f6fc;
+        }
+
+        .btn-edit.editing {
+            background: #2271b1;
+            color: white;
+        }
+
+        .prompt-textarea {
+            width: 100%;
+            padding: 16px;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 2px;
+            font-size: 14px;
+            line-height: 1.8;
+            color: #1e1e1e;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            resize: vertical;
+            min-height: 160px;
+        }
+
+        .prompt-textarea:focus {
+            outline: none;
+            border-color: #2271b1;
+        }
+
+        .prompt-textarea:read-only {
+            background: #f9f9f9;
+            cursor: default;
+        }
+
+        .prompt-textarea.editing {
+            background: white;
+            border-color: #2271b1;
+        }
+
+        .prompt-actions {
+            margin-top: 12px;
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        /* Chart Preview (After Generation) */
+        .chart-preview-container {
+            background: #f6f7f7;
+            border: 1px solid #ddd;
+            border-radius: 2px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .chart-title {
+            font-size: 16px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 20px;
+            color: #1e1e1e;
+        }
+
+        #chartCanvas {
+            max-height: 300px;
+        }
+
+        .chart-generated-notice {
+            text-align: center;
+            color: #16a34a;
+            font-size: 13px;
+            margin-top: 12px;
+            font-weight: 500;
+        }
+
+        .chat-container {
+            border: 1px solid #ddd;
+            border-radius: 2px;
+            background: white;
+        }
+
+        .chat-header {
+            padding: 12px 16px;
+            background: #f6f7f7;
+            border-bottom: 1px solid #ddd;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chat-messages {
+            padding: 16px;
+            max-height: 300px;
+            overflow-y: auto;
+            min-height: 0;
+            display: none;
+        }
+
+        .chat-messages.active {
+            display: block;
+        }
+
+        .chat-message {
+            margin-bottom: 12px;
+            padding: 10px 14px;
+            border-radius: 2px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .chat-message.user {
+            background: #f0f6fc;
+            color: #1e1e1e;
+            margin-left: 40px;
+        }
+
+        .chat-message.assistant {
+            background: #f6f7f7;
+            color: #1e1e1e;
+            margin-right: 40px;
+        }
+
+        .chat-message.system {
+            background: #fff8e1;
+            color: #1e1e1e;
+            text-align: center;
+            font-size: 13px;
+        }
+
+        .chat-input-area {
+            padding: 16px;
+            border-top: 1px solid #ddd;
+            background: white;
+        }
+
+        .chat-input-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 2px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: #2271b1;
+            box-shadow: 0 0 0 1px #2271b1;
+        }
+
+        .chat-suggestions {
+            margin-top: 8px;
+        }
+
+        .chat-suggestions-label {
+            font-size: 12px;
+            color: #757575;
+            margin-bottom: 8px;
+        }
+
+        .suggestion-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .pill {
+            padding: 6px 12px;
+            background: #f6f7f7;
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            font-size: 12px;
+            color: #1e1e1e;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .pill:hover {
+            background: #f0f6fc;
+            border-color: #2271b1;
+            color: #2271b1;
+        }
+
+        .action-row {
+            margin-top: 20px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        /* Add Block Button */
+        .add-block-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border: 1px solid #1e1e1e;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.2s;
+            margin: 12px 0;
+        }
+
+        .add-block-button:hover {
+            background: #1e1e1e;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- Gutenberg Header -->
+    <div class="editor-header">
+        <div class="editor-header-logo">MJ</div>
+        <button class="editor-header-button">+</button>
+        <button class="editor-header-button secondary">↶</button>
+        <button class="editor-header-button secondary">↷</button>
+        <button class="editor-header-button secondary">☰</button>
+        <div class="editor-header-title">No title · Post</div>
+        <button class="editor-header-save">Save draft</button>
+    </div>
+
+    <!-- Main Editor -->
+    <div class="editor-container">
+        <!-- Post Title -->
+        <input
+            type="text"
+            class="post-title"
+            placeholder="Add title"
+            value="Patrick Mahomes Dominates in Chiefs Victory Over Dolphins"
+        >
+
+        <!-- Paragraph Block 1 -->
+        <div class="block">
+            <div class="paragraph-block">
+                The Kansas City Chiefs defeated the Miami Dolphins 31-24 in Week 10, with Patrick Mahomes putting on a masterclass performance. The star quarterback threw for 372 yards and 3 touchdowns, completing 26 of 38 passes for a completion percentage of 68.4%.
+            </div>
+        </div>
+
+        <!-- Paragraph Block 2 -->
+        <div class="block">
+            <div class="paragraph-block">
+                Mahomes connected with Travis Kelce for two of those touchdowns, including a crucial 22-yard score in the fourth quarter that sealed the victory. The Chiefs' offense was firing on all cylinders, with Mahomes demonstrating excellent pocket presence and decision-making throughout the game.
+            </div>
+        </div>
+
+        <!-- Sports Data Visualizer Block -->
+        <div class="block">
+            <div class="chart-genie-block is-selected" id="chartGenieBlock">
+
+                <!-- Initial State -->
+                <div class="initial-state" id="initialState">
+                    <div class="block-icon-header">
+                        <div class="block-icon">📊</div>
+                        <div class="block-title">Sports Data Visualizer</div>
+                    </div>
+                    <div class="block-description">
+                        AI-powered sports data visualization. Analyzes your article and suggests relevant charts using Sportradar data.
+                    </div>
+                    <button class="analyze-button" onclick="analyzeArticle()">
+                        Suggest Charts
+                    </button>
+                </div>
+
+                <!-- Loading State -->
+                <div class="loading-state" id="loadingState">
+                    <div class="spinner"></div>
+                    <div class="loading-text">Analyzing article content...</div>
+                </div>
+
+                <!-- Suggestions View -->
+                <div class="suggestions-view" id="suggestionsView">
+                    <div class="suggestions-header">
+                        💡 Suggested Charts Based on Your Article
+                    </div>
+
+                    <div class="suggestions-grid" id="suggestionCards"></div>
+
+                    <div class="refresh-section">
+                        <p>None of these work?</p>
+                        <button class="btn btn-secondary" onclick="refreshSuggestions()">
+                            🔄 Get different suggestions
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Refinement View -->
+                <div class="refinement-view" id="refinementView">
+                    <a href="#" class="back-link" onclick="backToSuggestions(); return false;">
+                        ← Back to suggestions
+                    </a>
+
+                    <!-- Chart Configuration (Before Generation) -->
+                    <div class="chart-config-container" id="chartConfigContainer">
+                        <div class="config-header">
+                            <div class="config-label">Prompt for Chart Details</div>
+                        </div>
+
+                        <textarea
+                            class="prompt-textarea"
+                            id="promptTextarea"
+                            readonly
+                            rows="8"
+                        ></textarea>
+
+                        <div class="prompt-actions">
+                            <button class="btn btn-secondary" id="cancelEditBtn" onclick="cancelEdit()" style="display: none;">
+                                Cancel
+                            </button>
+                            <button class="btn btn-primary" id="saveEditBtn" onclick="saveEdit()" style="display: none;">
+                                Save Changes
+                            </button>
+                            <button class="btn btn-secondary" id="editPromptBtn" onclick="toggleEditMode()">
+                                ✏️ Edit
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Chart Preview (After Generation) -->
+                    <div class="chart-preview-container" id="chartPreviewContainer" style="display: none;">
+                        <div class="chart-title" id="chartTitle">Chart Title</div>
+                        <canvas id="chartCanvas"></canvas>
+                        <div class="chart-generated-notice">
+                            ✓ Chart generated successfully
+                        </div>
+                    </div>
+
+                    <!-- Chat Container (Only visible after chart generation) -->
+                    <div class="chat-container" id="chatContainer" style="display: none;">
+                        <div class="chat-header">
+                            💬 Refine Your Chart
+                        </div>
+
+                        <div class="chat-messages" id="chatMessages"></div>
+
+                        <div class="chat-input-area">
+                            <div class="chat-input-row">
+                                <input
+                                    type="text"
+                                    class="chat-input"
+                                    id="chatInput"
+                                    placeholder="e.g., 'Change the colors to Chiefs red and gold'"
+                                    onkeypress="handleChatKeypress(event)"
+                                >
+                                <button class="btn btn-primary" onclick="sendChatMessage()">
+                                    Send
+                                </button>
+                            </div>
+
+                            <div class="chat-suggestions">
+                                <div class="chat-suggestions-label">Try:</div>
+                                <div class="suggestion-pills">
+                                    <span class="pill" onclick="quickChat('Add completion percentage')">Add completion percentage</span>
+                                    <span class="pill" onclick="quickChat('Compare to his season average')">Compare to season average</span>
+                                    <span class="pill" onclick="quickChat('Change to a line chart')">Change to line chart</span>
+                                    <span class="pill" onclick="quickChat('Make it Chiefs colors')">Make it Chiefs colors</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="action-row">
+                        <button class="btn btn-secondary" onclick="backToSuggestions()">
+                            ← Back to Suggestions
+                        </button>
+                        <button class="btn btn-primary" id="generateChartBtn" onclick="generateChart()">
+                            Generate
+                        </button>
+                        <button class="btn btn-primary" id="insertChartBtn" onclick="insertChart()" style="display: none;">
+                            Insert
+                        </button>
+                        <button class="btn btn-secondary" id="generateNewBlockBtn" onclick="generateChartInNewBlock()" style="display: none;">
+                            Generate in New Block
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Paragraph Block 3 -->
+        <div class="block">
+            <div class="paragraph-block">
+                On the other side, Tua Tagovailoa had a respectable performance, throwing for 285 yards and 2 touchdowns, but it wasn't enough to overcome Mahomes' excellence. The Dolphins' defense struggled to contain the Chiefs' passing attack, particularly in the red zone where Kansas City converted on 4 of 5 attempts.
+            </div>
+        </div>
+
+        <!-- Add Block Button -->
+        <button class="add-block-button">+</button>
+
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
